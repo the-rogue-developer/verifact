@@ -10,7 +10,7 @@ data/raw/
 data/processed/
 data/corpus/
 artifacts/
-results/*.json
+# results/*.json is committed on purpose: small metric files referenced from RESULTS.md
 wandb/
 *.joblib
 *.faiss

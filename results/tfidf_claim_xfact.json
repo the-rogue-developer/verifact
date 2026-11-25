@@ -1,0 +1,149 @@
+{
+  "data/processed/xfact_all/test.jsonl": {
+    "accuracy": 0.7338622430580599,
+    "macro_f1": 0.7286312818048444,
+    "per_class": {
+      "REFUTES": {
+        "precision": 0.7877604166666666,
+        "recall": 0.7459926017262639,
+        "f1-score": 0.766307789740342,
+        "support": 1622.0
+      },
+      "SUPPORTS": {
+        "precision": 0.6669361358124495,
+        "recall": 0.7167680278019114,
+        "f1-score": 0.6909547738693468,
+        "support": 1151.0
+      },
+      "accuracy": 0.7338622430580599,
+      "macro avg": {
+        "precision": 0.727348276239558,
+        "recall": 0.7313803147640876,
+        "f1-score": 0.7286312818048444,
+        "support": 2773.0
+      },
+      "weighted avg": {
+        "precision": 0.7376094079168636,
+        "recall": 0.7338622430580599,
+        "f1-score": 0.7350307175198171,
+        "support": 2773.0
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "REFUTES",
+        "SUPPORTS"
+      ],
+      "matrix": [
+        [
+          1210,
+          412
+        ],
+        [
+          326,
+          825
+        ]
+      ]
+    },
+    "n": 2773,
+    "single_class_test": false,
+    "predicted_label_counts": {
+      "REFUTES": 1536,
+      "SUPPORTS": 1237
+    }
+  },
+  "data/processed/xfact_all/xfact_ood.jsonl": {
+    "accuracy": 0.7681058495821727,
+    "macro_f1": 0.6950111838416927,
+    "per_class": {
+      "REFUTES": {
+        "precision": 0.875,
+        "recall": 0.8157181571815718,
+        "f1-score": 0.844319775596073,
+        "support": 1107.0
+      },
+      "SUPPORTS": {
+        "precision": 0.49504950495049505,
+        "recall": 0.60790273556231,
+        "f1-score": 0.5457025920873124,
+        "support": 329.0
+      },
+      "accuracy": 0.7681058495821727,
+      "macro avg": {
+        "precision": 0.6850247524752475,
+        "recall": 0.7118104463719409,
+        "f1-score": 0.6950111838416927,
+        "support": 1436.0
+      },
+      "weighted avg": {
+        "precision": 0.7879500606745912,
+        "recall": 0.7681058495821727,
+        "f1-score": 0.7759040002657231,
+        "support": 1436.0
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "REFUTES",
+        "SUPPORTS"
+      ],
+      "matrix": [
+        [
+          903,
+          204
+        ],
+        [
+          129,
+          200
+        ]
+      ]
+    },
+    "n": 1436,
+    "single_class_test": false,
+    "predicted_label_counts": {
+      "REFUTES": 1032,
+      "SUPPORTS": 404
+    }
+  },
+  "data/processed/xfact_all/xfact_test_hi.jsonl": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "per_class": {
+      "REFUTES": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 149.0
+      },
+      "accuracy": 1.0,
+      "macro avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 149.0
+      },
+      "weighted avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 149.0
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "REFUTES"
+      ],
+      "matrix": [
+        [
+          149
+        ]
+      ]
+    },
+    "n": 149,
+    "single_class_test": true,
+    "predicted_label_counts": {
+      "REFUTES": 149,
+      "SUPPORTS": 0
+    }
+  }
+}

@@ -83,6 +83,13 @@ def train(cfg: dict) -> dict:
         id2label={i: lab for lab, i in label2id.items()},
         ignore_mismatched_sizes=True,  # lets you start from an already fine-tuned NLI head
     )
+    # Keep the master weights in fp32. transformers 5.x loads weights in the
+    # checkpoint's own dtype, and mDeBERTa's Hub weights are stored in fp16.
+    # Mixed-precision training (fp16=True) needs fp32 weights: it runs the
+    # forward pass in fp16 but keeps fp32 weights and gradients so tiny
+    # updates aren't rounded to zero. With fp16 weights the gradient scaler
+    # fails with "ValueError: Attempting to unscale FP16 gradients".
+    model = model.float()
     max_len = cfg["model"].get("max_length", 256)
     is_pair = task["type"] == "pair"
 

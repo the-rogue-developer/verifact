@@ -37,7 +37,10 @@ class _Base:
         model_dir = str(model_dir)
         self.device = _device(device)
         self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_dir).to(self.device).eval()
+        # .float(): transformers 5.x keeps the checkpoint's dtype, so a model saved
+        # or published in fp16 would otherwise run in fp16, which is slow or
+        # unsupported for some ops on CPU and gives different scores than training.
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_dir).float().to(self.device).eval()
         id2label = self.model.config.id2label
         self.labels = meta.get("labels") or [id2label[i] for i in range(len(id2label))]
         self.max_length = meta.get("max_length", 256)

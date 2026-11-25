@@ -103,8 +103,11 @@ def train(cfg: dict) -> dict:
 
         def tok(batch):
             if is_pair:
-                # truncation="only_second" trims the evidence, never the claim
-                return tokenizer(batch["a"], batch["b"], truncation="only_second", max_length=max_len)
+                # "longest_first" removes tokens from whichever text is longer until the
+                # pair fits. Usually that is the evidence, so the claim stays whole, as
+                # with "only_second". But some X-Fact claims alone exceed max_length, and
+                # "only_second" (which may only cut the evidence) then raises an error.
+                return tokenizer(batch["a"], batch["b"], truncation="longest_first", max_length=max_len)
             return tokenizer(batch["a"], truncation=True, max_length=max_len)
 
         return ds.map(tok, batched=True, remove_columns=["a", "b"])

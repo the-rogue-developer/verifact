@@ -53,7 +53,10 @@ class _Base:
             aa = a[i:i + self.batch_size]
             kwargs = dict(padding=True, max_length=self.max_length, return_tensors="pt")
             if b is not None:
-                enc = self.tokenizer(aa, b[i:i + self.batch_size], truncation="only_second", **kwargs)
+                # "longest_first", not "only_second": it cuts the longer text, normally the
+                # evidence, and still works when a claim alone exceeds max_length
+                # (only_second can't shorten the claim and raises an error). Must match training.
+                enc = self.tokenizer(aa, b[i:i + self.batch_size], truncation="longest_first", **kwargs)
             else:
                 enc = self.tokenizer(aa, truncation=True, **kwargs)
             logits = self.model(**{k: v.to(self.device) for k, v in enc.items()}).logits

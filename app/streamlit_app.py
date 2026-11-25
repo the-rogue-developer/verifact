@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from verifact.config import load_config  # noqa: E402
 from verifact.pipeline.build import build_pipeline  # noqa: E402
+from verifact.retrieval.corpus import source_url  # noqa: E402
 
 VERDICT_STYLE = {
     "FALSE": ("❌", "error"),
@@ -59,8 +60,12 @@ if st.button("Check", type="primary") and message.strip():
             if c.best_evidence:
                 st.markdown("**Key evidence**")
                 st.write(c.best_evidence["text"])
-                if c.best_evidence.get("url"):
-                    st.markdown(f"[Source]({c.best_evidence['url']})")
+                url = source_url(c.best_evidence)
+                if url:
+                    st.markdown(f"[Source]({url})")
+                else:
+                    # No real URL: say so instead of linking a placeholder page.
+                    st.caption("Demo evidence (written for this prototype)")
             if show_all:
                 for j in c.evidence:
                     probs = ", ".join(f"{k}: {v:.2f}" for k, v in j.probs.items())

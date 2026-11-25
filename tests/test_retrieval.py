@@ -72,3 +72,24 @@ def test_hybrid_returns_passage_dicts(sample_dir):
     hits = h.search("Rs 2000 notes withdrawn", k=2)
     assert hits[0]["id"] == "doc-2000#0"
     assert "score" in hits[0] and "url" in hits[0]
+
+
+def test_source_url_hides_placeholders_and_empty_urls():
+    from verifact.retrieval.corpus import source_url
+
+    assert source_url({"url": "https://en.wikipedia.org/wiki/Ranchi"}) == "https://en.wikipedia.org/wiki/Ranchi"
+    for url in ("", "   ", None, "https://example.org/factcheck/rs500", "http://www.example.com/x", "not a url"):
+        assert source_url({"url": url}) is None, url
+    assert source_url({}) is None and source_url(None) is None
+
+
+def test_sample_corpus_sources_are_honest(sample_dir):
+    # Real links only for Wikipedia documents; demo-written evidence has no URL.
+    from verifact.retrieval.corpus import source_url
+
+    for d in read_jsonl(sample_dir / "corpus_docs.jsonl"):
+        assert d["source"] in {"wikipedia", "demo"}, d["id"]
+        if d["source"] == "wikipedia":
+            assert d["url"].startswith("https://en.wikipedia.org/wiki/") and source_url(d), d["id"]
+        else:
+            assert d["url"] == "", d["id"]

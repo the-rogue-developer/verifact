@@ -8,7 +8,28 @@ verifier work best on short passages.
 
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 from ..io import read_jsonl
+
+# Reserved example domains (RFC 2606): placeholders, never a real source.
+_PLACEHOLDER_HOSTS = {"example.org", "example.com", "example.net"}
+
+
+def source_url(passage: dict | None) -> str | None:
+    """The passage's URL if it is a real, linkable source, else None.
+
+    Demo passages written for this prototype have an empty URL, and old
+    sample data used example.org placeholders. Neither should be shown as a
+    "Source" link, because that would present made-up evidence as sourced.
+    """
+    url = ((passage or {}).get("url") or "").strip()
+    if not url:
+        return None
+    host = (urlparse(url).hostname or "").lower()
+    if not host or any(host == h or host.endswith("." + h) for h in _PLACEHOLDER_HOSTS):
+        return None
+    return url
 
 
 def chunk_text(text: str, chunk_words: int = 120, overlap: int = 30) -> list[str]:

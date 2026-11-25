@@ -51,9 +51,11 @@ cp -r artifacts/nli_fever/best "$OUT/models/nli_fever"
 cp artifacts/nli_fever/results.json "$OUT/results/nli_fever_train.json"
 
 step "7/7 Evaluate all models on FEVER dev and X-Fact test"
+# --two-way: X-Fact has no NOT ENOUGH INFO labels, so there the models choose
+# SUPPORTS vs REFUTES. FEVER dev has NEI labels and is still scored 3-way.
 for name in tfidf_pair.joblib tfidf_claim_only.joblib nli_fever; do
     echo "--- $name"
-    python scripts/evaluate.py --model "$OUT/models/$name" \
+    python scripts/evaluate.py --model "$OUT/models/$name" --two-way \
         --data data/processed/fever/dev.jsonl data/processed/xfact/test.jsonl \
         --out "$OUT/results/eval_${name%.joblib}.json"
 done

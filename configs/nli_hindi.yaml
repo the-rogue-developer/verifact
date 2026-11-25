@@ -1,0 +1,27 @@
+# Stage 2: continue fine-tuning the FEVER verifier on Hindi / code-mixed data
+# (cross-lingual transfer). Run after nli_fever.yaml.
+# python scripts/train.py --config configs/nli_hindi.yaml
+output_dir: artifacts/nli_hindi
+
+task:
+  type: pair
+  # X-Fact and IndicClaimBuster are 2-way (no NEI) unless you prepare X-Fact with
+  # --keep-ambiguous. Keep 3 labels so the model stays compatible with the pipeline.
+
+model:
+  name: artifacts/nli_fever/best     # start from the stage-1 model
+  max_length: 320                    # X-Fact evidence = 5 search snippets, a bit longer
+
+data:
+  train: data/processed/hindi/train.jsonl
+  dev: data/processed/hindi/dev.jsonl
+  test: data/processed/hindi/test.jsonl
+
+train:
+  epochs: 4
+  learning_rate: 1.5e-5          # lower LR: we're adapting, not learning from scratch
+  batch_size: 16
+  grad_accum: 1
+  fp16: true
+  class_weights: true
+  patience: 2

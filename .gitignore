@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+
+# large / generated
+data/raw/
+data/processed/
+data/corpus/
+artifacts/
+results/*.json
+wandb/
+*.joblib
+*.faiss
+*.pkl
+
+# secrets
+.env

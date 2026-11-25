@@ -1,0 +1,25 @@
+# Optional: check-worthiness classifier for claim extraction.
+# Data: CLEF CheckThat! check-worthiness or ClaimBuster, prepared with
+#   python scripts/prepare_data.py style ... (text + label columns), with
+#   labels mapped to CHECKWORTHY / NOT_CHECKWORTHY (see README).
+# python scripts/train.py --config configs/claim_detector.yaml
+output_dir: artifacts/claim_detector
+
+task:
+  type: single
+  labels: [NOT_CHECKWORTHY, CHECKWORTHY]
+
+model:
+  name: FacebookAI/xlm-roberta-base
+  max_length: 128
+
+data:
+  train: data/processed/claims/train.jsonl
+  dev: data/processed/claims/dev.jsonl
+
+train:
+  epochs: 3
+  learning_rate: 2.0e-5
+  batch_size: 32
+  fp16: true
+  class_weights: true

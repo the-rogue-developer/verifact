@@ -1,0 +1,28 @@
+# Stage 1: fine-tune the multilingual verifier on English FEVER.
+# python scripts/train.py --config configs/nli_fever.yaml
+output_dir: artifacts/nli_fever
+
+task:
+  type: pair                     # (claim, evidence) -> SUPPORTS / REFUTES / NOT ENOUGH INFO
+
+model:
+  name: microsoft/mdeberta-v3-base   # alternative: FacebookAI/xlm-roberta-base
+  max_length: 256
+
+data:
+  train: data/processed/fever/train.jsonl
+  dev: data/processed/fever/dev.jsonl
+  max_train: 60000               # subsample so one epoch fits a free T4 session; raise if you have time
+
+train:
+  epochs: 2
+  learning_rate: 2.0e-5
+  batch_size: 16
+  grad_accum: 2                  # effective batch size 32
+  warmup_ratio: 0.06
+  weight_decay: 0.01
+  fp16: true                     # if the loss becomes NaN with mDeBERTa, set false or use XLM-R
+  class_weights: true
+  patience: 2
+  seed: 42
+  report_to: none                # "wandb" to log to Weights & Biases

@@ -1,0 +1,35 @@
+# End-to-end pipeline settings (used by scripts/build_index.py, scripts/verify.py and the app).
+
+retrieval:
+  corpus: data/corpus/passages.jsonl     # built by scripts/prepare_data.py corpus
+  index_dir: artifacts/index
+  use_bm25: true
+  use_dense: true
+  dense_model: intfloat/multilingual-e5-base
+  query_prefix: "query: "                # E5 models need these prefixes; set "" for LaBSE
+  passage_prefix: "passage: "
+  use_reranker: true
+  reranker_model: cross-encoder/mmarco-mMiniLMv2-L12-H384-v1   # multilingual cross-encoder
+  candidates: 50
+  bm25_weight: 1.0
+  dense_weight: 1.0
+
+verifier:
+  model_dir: artifacts/nli_hindi/best    # or artifacts/nli_fever/best
+
+claim_detector:
+  model_dir: null                        # artifacts/claim_detector/best once trained
+  positive_label: CHECKWORTHY
+  threshold: 0.5
+
+style:
+  model_dir: null                        # artifacts/style_bert/best for the no-evidence fallback
+
+claims:
+  max_claims: 5
+
+pipeline:
+  top_k_evidence: 3
+  claim_threshold: 0.6
+  rank_decay: 0.7
+  style_threshold: 0.7

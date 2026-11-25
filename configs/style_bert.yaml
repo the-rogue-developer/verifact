@@ -1,0 +1,24 @@
+# Baseline 2: BERT style classifier (text only, no evidence) -> REAL / FAKE.
+# MuRIL is Google's BERT pretrained on 17 Indian languages incl. transliterated text.
+# python scripts/train.py --config configs/style_bert.yaml
+output_dir: artifacts/style_bert
+
+task:
+  type: single
+  labels: [REAL, FAKE]
+
+model:
+  name: google/muril-base-cased    # alternative: FacebookAI/xlm-roberta-base
+  max_length: 256
+
+data:
+  train: data/processed/style/train.jsonl
+  dev: data/processed/style/dev.jsonl
+  test: data/processed/style/test.jsonl
+
+train:
+  epochs: 3
+  learning_rate: 3.0e-5
+  batch_size: 16
+  fp16: true
+  class_weights: true

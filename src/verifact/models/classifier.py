@@ -7,6 +7,8 @@ from pathlib import Path
 
 import torch
 
+from ..labels import normalise_label
+
 
 def _device(device: str | None) -> str:
     if device:
@@ -14,13 +16,25 @@ def _device(device: str | None) -> str:
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 
+def load_task_meta(model_dir: str | Path) -> dict:
+    """Read verifact_task.json written by train_classifier.py.
+
+    Returns {} when it is missing, e.g. for an off-the-shelf model from the
+    Hugging Face Hub (``model_dir`` is then a Hub id like
+    "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli", not a local folder).
+    """
+    meta_path = Path(model_dir) / "verifact_task.json"
+    return json.loads(meta_path.read_text()) if meta_path.is_file() else {}
+
+
 class _Base:
     def __init__(self, model_dir: str | Path, device: str | None = None, batch_size: int = 32):
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-        model_dir = Path(model_dir)
-        meta_path = model_dir / "verifact_task.json"
-        meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
+        meta = load_task_meta(model_dir)
+        # Pass a str, not a Path: on Windows Path("org/model") becomes "org\model",
+        # which from_pretrained would no longer recognise as a Hub id.
+        model_dir = str(model_dir)
         self.device = _device(device)
         self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
         self.model = AutoModelForSequenceClassification.from_pretrained(model_dir).to(self.device).eval()
@@ -46,7 +60,23 @@ class _Base:
 
 
 class Verifier(_Base):
-    """Claim-verification (NLI) model: (claim, evidence) -> label probabilities."""
+    """Claim-verification (NLI) model: (claim, evidence) -> label probabilities.
+
+    Works with our fine-tuned models and with off-the-shelf NLI models whose
+    config uses MNLI names (entailment / neutral / contradiction): those are
+    mapped onto SUPPORTS / NOT ENOUGH INFO / REFUTES via normalise_label, so the
+    pipeline and evaluate.py always see our label names.
+    """
+
+    def __init__(self, model_dir: str | Path, device: str | None = None, batch_size: int = 32):
+        super().__init__(model_dir, device, batch_size)
+        try:
+            labels = [normalise_label(lab) for lab in self.labels]
+        except ValueError as e:
+            raise ValueError(f"{model_dir}: model labels {self.labels} can't be mapped to NLI labels ({e})") from e
+        if len(set(labels)) != len(labels):
+            raise ValueError(f"{model_dir}: model labels {self.labels} map to duplicate NLI labels {labels}")
+        self.labels = labels
 
     def predict(self, claims: list[str], evidences: list[str]) -> list[dict[str, float]]:
         if len(claims) != len(evidences):

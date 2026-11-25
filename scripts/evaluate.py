@@ -28,18 +28,19 @@ def predict(model_path: str, rows: list[dict], batch_size: int) -> tuple[list[st
         model, mode = load(model_path)
         return predict_tfidf(model, rows, mode), list(model.classes_)
 
-    meta = json.loads((Path(model_path) / "verifact_task.json").read_text())
-    if meta["type"] == "pair":
-        from verifact.models.classifier import Verifier
+    from verifact.models.classifier import TextClassifier, Verifier, load_task_meta
 
-        v = Verifier(model_path, batch_size=batch_size)
-        probs = v.predict([r["claim"] for r in rows], [r["evidence"] for r in rows])
+    # No verifact_task.json means an off-the-shelf Hub model; those are NLI
+    # models in practice, so treat it as a (claim, evidence) pair task.
+    meta = load_task_meta(model_path)
+    if meta.get("type", "pair") == "pair":
+        model = Verifier(model_path, batch_size=batch_size)
+        probs = model.predict([r["claim"] for r in rows], [r["evidence"] for r in rows])
     else:
-        from verifact.models.classifier import TextClassifier
-
-        c = TextClassifier(model_path, batch_size=batch_size)
-        probs = c.predict([r.get("text") or r["claim"] for r in rows])
-    return [max(p, key=p.get) for p in probs], meta["labels"]
+        model = TextClassifier(model_path, batch_size=batch_size)
+        probs = model.predict([r.get("text") or r["claim"] for r in rows])
+    # model.labels, not meta["labels"]: for Hub models it holds the normalised names.
+    return [max(p, key=p.get) for p in probs], model.labels
 
 
 def main():

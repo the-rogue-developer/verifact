@@ -41,3 +41,20 @@ def tiny_model_dir(tmp_path_factory) -> Path:
     BertForSequenceClassification(cfg).save_pretrained(out)
     tok.save_pretrained(out)
     return out
+
+
+@pytest.fixture(scope="session")
+def tiny_nli_model_dir(tiny_model_dir, tmp_path_factory) -> Path:
+    """The tiny model with our NLI label names in its config, so Verifier
+    accepts it (the raw fixture has placeholder labels LABEL_0..2)."""
+    import shutil
+
+    from verifact.labels import NLI_LABELS
+
+    out = tmp_path_factory.mktemp("tiny_nli") / "model"
+    shutil.copytree(tiny_model_dir, out)
+    cfg = json.loads((out / "config.json").read_text())
+    cfg["id2label"] = {str(i): lab for i, lab in enumerate(NLI_LABELS)}
+    cfg["label2id"] = {lab: i for i, lab in enumerate(NLI_LABELS)}
+    (out / "config.json").write_text(json.dumps(cfg))
+    return out

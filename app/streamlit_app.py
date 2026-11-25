@@ -6,6 +6,7 @@ On Colab, expose it with a tunnel (see the notebook), or deploy to
 Hugging Face Spaces.
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -37,7 +38,10 @@ st.set_page_config(page_title="VeriFact", page_icon="🔎", layout="centered")
 st.title("🔎 VeriFact")
 st.caption("Evidence-based fact-checking for English, Hindi and Hinglish messages")
 
-config_path = st.sidebar.text_input("Pipeline config", str(ROOT / "configs" / "pipeline.yaml"))
+# VERIFACT_CONFIG lets a launcher (e.g. the Colab notebook) pick the config
+# without editing configs/pipeline.yaml.
+default_config = os.environ.get("VERIFACT_CONFIG") or str(ROOT / "configs" / "pipeline.yaml")
+config_path = st.sidebar.text_input("Pipeline config", default_config)
 show_all = st.sidebar.checkbox("Show all retrieved evidence", value=False)
 
 message = st.text_area("Paste a message, forward or headline", height=150,

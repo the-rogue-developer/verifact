@@ -1,0 +1,431 @@
+# English Wikipedia titles for the VeriFact retrieval corpus.
+# One title per line; blank lines and lines starting with # are ignored.
+# Redirects are followed (e.g. "Bengaluru" -> "Bangalore"); missing pages are skipped and logged.
+# Used by: python scripts/fetch_wikipedia.py --titles data/wiki_topics_en.txt --lang en --out data/raw/wiki_en.jsonl
+
+# --- Government and constitution
+India
+Government of India
+Prime Minister of India
+President of India
+Vice President of India
+Parliament of India
+Lok Sabha
+Rajya Sabha
+Supreme Court of India
+Chief Justice of India
+Constitution of India
+Preamble to the Constitution of India
+Fundamental rights in India
+Article 370 of the Constitution of India
+Union Council of Ministers
+NITI Aayog
+Citizenship (Amendment) Act, 2019
+Emergency (India)
+Election Commission of India
+Chief Election Commissioner of India
+Electronic voting in India
+Voter-verified paper audit trail
+None of the above
+2019 Indian general election
+2024 Indian general election
+Bharatiya Janata Party
+Indian National Congress
+Aam Aadmi Party
+Indian Armed Forces
+Indian Army
+Indian Navy
+Indian Air Force
+Indian Railways
+Vande Bharat Express
+
+# --- States
+Andhra Pradesh
+Arunachal Pradesh
+Assam
+Bihar
+Chhattisgarh
+Goa
+Gujarat
+Haryana
+Himachal Pradesh
+Jharkhand
+Karnataka
+Kerala
+Madhya Pradesh
+Maharashtra
+Manipur
+Meghalaya
+Mizoram
+Nagaland
+Odisha
+Punjab, India
+Rajasthan
+Sikkim
+Tamil Nadu
+Telangana
+Tripura
+Uttar Pradesh
+Uttarakhand
+West Bengal
+
+# --- Union territories
+Andaman and Nicobar Islands
+Chandigarh
+Dadra and Nagar Haveli and Daman and Diu
+Delhi
+Jammu and Kashmir (union territory)
+Ladakh
+Lakshadweep
+Puducherry (union territory)
+
+# --- Capitals and major cities
+Amaravati
+Itanagar
+Dispur
+Patna
+Raipur
+Panaji
+Gandhinagar
+Shimla
+Ranchi
+Bengaluru
+Thiruvananthapuram
+Bhopal
+Mumbai
+Imphal
+Shillong
+Aizawl
+Kohima
+Bhubaneswar
+Jaipur
+Gangtok
+Chennai
+Hyderabad
+Agartala
+Lucknow
+Dehradun
+Kolkata
+Port Blair
+Daman
+New Delhi
+Srinagar
+Jammu
+Leh
+Kavaratti
+Pondicherry
+Varanasi
+Ahmedabad
+Pune
+Jamshedpur
+
+# --- Prime ministers, presidents and politicians
+Narendra Modi
+Droupadi Murmu
+Ram Nath Kovind
+Pranab Mukherjee
+Jawaharlal Nehru
+Lal Bahadur Shastri
+Indira Gandhi
+Rajiv Gandhi
+P. V. Narasimha Rao
+Atal Bihari Vajpayee
+Manmohan Singh
+Rahul Gandhi
+Sonia Gandhi
+Amit Shah
+Rajnath Singh
+Nirmala Sitharaman
+S. Jaishankar
+Arvind Kejriwal
+Mamata Banerjee
+Yogi Adityanath
+Nitish Kumar
+Hemant Soren
+
+# --- Freedom movement and historical leaders
+Mahatma Gandhi
+B. R. Ambedkar
+Vallabhbhai Patel
+Subhas Chandra Bose
+Bhagat Singh
+Rabindranath Tagore
+Swami Vivekananda
+Indian independence movement
+Partition of India
+Jallianwala Bagh massacre
+British Raj
+East India Company
+Mughal Empire
+Akbar
+Shah Jahan
+Ashoka
+Maurya Empire
+Shivaji
+
+# --- Scientists
+A. P. J. Abdul Kalam
+C. V. Raman
+Homi J. Bhabha
+Vikram Sarabhai
+Satish Dhawan
+Srinivasa Ramanujan
+Jagadish Chandra Bose
+Satyendra Nath Bose
+Meghnad Saha
+Har Gobind Khorana
+Subrahmanyan Chandrasekhar
+Venkatraman Ramakrishnan
+M. Visvesvaraya
+Kalpana Chawla
+Rakesh Sharma
+Aryabhata
+
+# --- Space programme
+Indian Space Research Organisation
+Department of Space
+Chandrayaan-1
+Chandrayaan-2
+Chandrayaan-3
+Mars Orbiter Mission
+Aditya-L1
+Gaganyaan
+Aryabhata (satellite)
+Polar Satellite Launch Vehicle
+Geosynchronous Satellite Launch Vehicle
+LVM3
+Satish Dhawan Space Centre
+Indian Regional Navigation Satellite System
+
+# --- Money, banking and digital public infrastructure
+Reserve Bank of India
+Indian rupee
+Coins of the Indian rupee
+Mahatma Gandhi New Series
+Indian 2000-rupee note
+Indian 500-rupee note
+Indian 1000-rupee note
+2016 Indian banknote demonetisation
+Digital rupee
+Unified Payments Interface
+National Payments Corporation of India
+Aadhaar
+Unique Identification Authority of India
+Goods and Services Tax (India)
+Income tax in India
+Union budget of India
+Economy of India
+State Bank of India
+Securities and Exchange Board of India
+Bombay Stock Exchange
+Pradhan Mantri Jan Dhan Yojana
+Pradhan Mantri Kisan Samman Nidhi
+Digital India
+Make in India
+Swachh Bharat Mission
+
+# --- Monuments and places
+Taj Mahal
+Red Fort
+Qutb Minar
+India Gate
+Gateway of India
+Charminar
+Hawa Mahal
+Amer Fort
+Fatehpur Sikri
+Humayun's Tomb
+Konark Sun Temple
+Sanchi
+Ajanta Caves
+Ellora Caves
+Khajuraho Group of Monuments
+Hampi
+Golden Temple
+Meenakshi Temple
+Jagannath Temple, Puri
+Kashi Vishwanath Temple
+Somnath temple
+Ram Mandir
+Statue of Unity
+Lotus Temple
+Victoria Memorial, Kolkata
+Mysore Palace
+Rashtrapati Bhavan
+Parliament House (India)
+Central Vista Redevelopment Project
+
+# --- National symbols and culture
+National symbols of India
+Flag of India
+State Emblem of India
+Jana Gana Mana
+Vande Mataram
+Bengal tiger
+Indian peafowl
+Nelumbo nucifera
+Mango
+Ficus benghalensis
+Ganges river dolphin
+Indian national calendar
+Languages of India
+Hindi
+Census of India
+2011 census of India
+Hinduism
+Islam in India
+Sikhism
+Kumbh Mela
+Diwali
+Holi
+Bharat Ratna
+
+# --- Rivers and geography
+Ganges
+Yamuna
+Brahmaputra River
+Godavari River
+Krishna River
+Narmada River
+Kaveri
+Mahanadi
+Indus River
+Sutlej
+Chenab River
+Damodar River
+Subarnarekha River
+Sarasvati River
+Himalayas
+Mount Everest
+Kangchenjunga
+Thar Desert
+Western Ghats
+Sundarbans
+Bay of Bengal
+Arabian Sea
+Hundru Falls
+
+# --- Health (common subjects of viral claims)
+COVID-19
+SARS-CoV-2
+COVID-19 pandemic in India
+COVID-19 vaccination in India
+COVID-19 vaccine
+Covaxin
+Oxford–AstraZeneca COVID-19 vaccine
+COVID-19 misinformation
+Vaccine
+Vaccine hesitancy
+MMR vaccine and autism
+Polio
+Pulse Polio
+Polio eradication
+Cancer
+Breast cancer
+Diabetes
+Hypertension
+Myocardial infarction
+Stroke
+Obesity
+Tuberculosis
+Malaria
+Dengue fever
+Nipah virus infection
+Mpox
+HIV/AIDS
+Antibiotic
+Antimicrobial resistance
+Paracetamol
+Hydroxychloroquine
+Ivermectin
+Ayurveda
+Homeopathy
+Yoga
+Cow urine
+Aspartame
+Monosodium glutamate
+Mobile phone radiation and health
+
+# --- Technology and misinformation
+5G
+5G misinformation
+WhatsApp
+Deepfake
+Misinformation
+Fake news in India
+Fact-checking
+Alt News
+Press Information Bureau
+Climate change
+Solar eclipse
+Moon landing
+Moon landing conspiracy theories
+Flat Earth
+
+# --- Events
+2008 Mumbai attacks
+2019 Pulwama attack
+2019 Balakot airstrike
+2020–2021 China–India skirmishes
+2020–2021 Indian farmers' protest
+Kashmir conflict
+India–Pakistan relations
+Bhopal disaster
+2004 Indian Ocean earthquake and tsunami
+Russian invasion of Ukraine
+Gaza war
+
+# --- Education and sport
+Indian Institutes of Technology
+Birla Institute of Technology, Mesra
+National Education Policy 2020
+Joint Entrance Examination
+Indian Premier League
+2011 Cricket World Cup
+2023 Cricket World Cup
+Sachin Tendulkar
+Virat Kohli
+MS Dhoni
+Neeraj Chopra
+
+# --- Business and entertainment figures
+Ratan Tata
+Mukesh Ambani
+Gautam Adani
+Amitabh Bachchan
+Shah Rukh Khan
+Lata Mangeshkar
+
+# --- World leaders and organisations often in viral claims
+Donald Trump
+Joe Biden
+Barack Obama
+Kamala Harris
+Vladimir Putin
+Xi Jinping
+Volodymyr Zelenskyy
+Imran Khan
+Nawaz Sharif
+Shehbaz Sharif
+Sheikh Hasina
+Muhammad Yunus
+Rishi Sunak
+Keir Starmer
+Justin Trudeau
+Emmanuel Macron
+Benjamin Netanyahu
+Kim Jong Un
+Recep Tayyip Erdoğan
+Mohammed bin Salman
+Ali Khamenei
+Shinzo Abe
+Elizabeth II
+Charles III
+Pope Francis
+14th Dalai Lama
+António Guterres
+Elon Musk
+Bill Gates
+United Nations
+World Health Organization
+NATO

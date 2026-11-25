@@ -89,3 +89,38 @@ def test_translate_pairs_with_fake_translator():
     assert out[0]["orig_claim"] == "a" and out[0]["source"] == "fever-mt"
     claims_only = translate_pairs(rows, fake, translate_evidence=False)
     assert claims_only[0]["evidence"] == "b"
+
+
+def test_grouped_split_keeps_claim_copies_together():
+    # Each claim twice (claims-only + full translation), as in the Hindi data.
+    rows = [{"id": f"{i}-{v}", "claim": f"दावा {i}", "orig_claim": f"claim {i}"}
+            for i in range(50) for v in ("claims-only", "full")]
+    tr, dv, te = split_rows(rows, 0.1, 0.2, group_key=lambda r: r["orig_claim"])
+    assert len(tr) + len(dv) + len(te) == 100 and len(te) == 20 and len(dv) == 10
+    claims = [{r["orig_claim"] for r in part} for part in (tr, dv, te)]
+    assert not (claims[0] & claims[1] or claims[0] & claims[2] or claims[1] & claims[2])
+
+
+def test_prepare_hindi_has_no_claim_leakage(tmp_path):
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    labels = ["SUPPORTS", "REFUTES", "NOT ENOUGH INFO"]
+    fever = [{"id": f"f{i}", "claim": f"claim {i}", "evidence": f"evidence {i}", "label": labels[i % 3],
+              "lang": "en", "source": "fever"} for i in range(60)]
+    translated = [{**r, "id": f"{r['id']}-mt-hi", "claim": f"दावा {r['id']}", "orig_claim": r["claim"],
+                   "lang": lang, "source": "fever-mt"}
+                  for r in fever[:40] for lang in ("hi-claim/en-evidence", "hi")]
+    write_jsonl(fever, tmp_path / "fever.jsonl")
+    write_jsonl(translated, tmp_path / "translated.jsonl")
+    subprocess.run([sys.executable, str(root / "scripts" / "prepare_data.py"), "hindi",
+                    "--translated", str(tmp_path / "translated.jsonl"),
+                    "--mix-fever", str(tmp_path / "fever.jsonl"), "--mix-n", "60",
+                    "--out-dir", str(tmp_path / "hindi")], check=True, capture_output=True)
+    out = {n: read_jsonl(tmp_path / "hindi" / f"{n}.jsonl") for n in ("train", "dev", "translated_test")}
+    key = lambda r: r.get("orig_claim") or r["claim"]  # noqa: E731
+    train_claims = {key(r) for r in out["train"]}
+    held_out = {key(r) for r in out["dev"] + out["translated_test"]}
+    assert out["translated_test"] and held_out and not (train_claims & held_out)

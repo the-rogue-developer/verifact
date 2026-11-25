@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import random
 from pathlib import Path
-from typing import Iterable, Iterator
+from typing import Callable, Iterable, Iterator
 
 
 def read_jsonl(path: str | Path) -> list[dict]:
@@ -50,14 +50,35 @@ def write_jsonl(rows: Iterable[dict], path: str | Path) -> int:
 
 
 def split_rows(rows: list[dict], dev_frac: float = 0.1, test_frac: float = 0.1,
-               seed: int = 42) -> tuple[list[dict], list[dict], list[dict]]:
-    """Shuffle and split rows into train/dev/test."""
+               seed: int = 42, group_key: Callable[[dict], str] | None = None
+               ) -> tuple[list[dict], list[dict], list[dict]]:
+    """Shuffle and split rows into train/dev/test.
+
+    group_key: rows with the same key always land in the same split. Use it
+    when one claim appears in several rows (e.g. translated with English and
+    with Hindi evidence): otherwise the model sees a test claim in training
+    and the test score is inflated (data leakage).
+    """
     rows = list(rows)
-    random.Random(seed).shuffle(rows)
-    n = len(rows)
-    n_test = int(n * test_frac)
-    n_dev = int(n * dev_frac)
-    test = rows[:n_test]
-    dev = rows[n_test:n_test + n_dev]
-    train = rows[n_test + n_dev:]
+    if group_key is None:
+        random.Random(seed).shuffle(rows)
+        n = len(rows)
+        n_test = int(n * test_frac)
+        n_dev = int(n * dev_frac)
+        test = rows[:n_test]
+        dev = rows[n_test:n_test + n_dev]
+        train = rows[n_test + n_dev:]
+        return train, dev, test
+
+    groups: dict[str, list[dict]] = {}
+    for r in rows:
+        groups.setdefault(group_key(r), []).append(r)
+    keys = list(groups)
+    random.Random(seed).shuffle(keys)
+    n_test, n_dev = int(len(rows) * test_frac), int(len(rows) * dev_frac)
+    train, dev, test = [], [], []
+    for k in keys:
+        # Fill test, then dev, up to their target row counts; the rest is train.
+        target = test if len(test) < n_test else dev if len(dev) < n_dev else train
+        target += groups[k]
     return train, dev, test

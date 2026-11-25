@@ -64,6 +64,7 @@ def cmd_hindi(a):
 
     out = Path(a.out_dir)
     train, dev, test, extra = [], [], [], {}
+    held_out_claims: set[str] = set()  # English claims behind translated dev/test rows
 
     if a.xfact_dir:
         d = Path(a.xfact_dir) / "data" / "x-fact"
@@ -83,7 +84,11 @@ def cmd_hindi(a):
 
     if a.translated:
         tr = read_jsonl(a.translated)
-        t_train, t_dev, t_test = split_rows(tr, 0.05, 0.1, seed=a.seed)
+        # Split by the original English claim: the same claim can appear twice
+        # (claims-only and full translation), and both copies must stay in one split.
+        t_train, t_dev, t_test = split_rows(tr, 0.05, 0.1, seed=a.seed,
+                                            group_key=lambda r: r.get("orig_claim") or r["claim"])
+        held_out_claims |= {r.get("orig_claim") or r["claim"] for r in t_dev + t_test}
         train += t_train
         dev += t_dev
         extra["translated_test"] = t_test
@@ -99,7 +104,9 @@ def cmd_hindi(a):
         extra["icb_test"] = icb_test  # also saved separately for per-dataset results
 
     if a.mix_fever:
-        fever = read_jsonl(a.mix_fever)
+        # Drop the English originals of translated dev/test claims, so the
+        # model hasn't seen a test claim (in English) during training.
+        fever = [r for r in read_jsonl(a.mix_fever) if r["claim"] not in held_out_claims]
         random.Random(a.seed).shuffle(fever)
         train += fever[: a.mix_n]
         log.info("mixed in %d FEVER rows (rehearsal)", min(a.mix_n, len(fever)))

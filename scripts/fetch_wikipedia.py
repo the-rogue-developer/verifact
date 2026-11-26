@@ -47,6 +47,12 @@ BATCH = 20                  # TextExtracts returns at most 20 intro extracts per
 CATEGORY_LIMIT = 100
 SLEEP = 0.5
 RETRY_WAIT = 2.0
+# HTTP 429 (Too Many Requests) / 503 mean "slow down", not "broken": a 2 s retry
+# is far too short (in Colab this lost 70 articles). Wait as long as the
+# server's Retry-After header says, otherwise use this growing schedule.
+RATE_LIMIT_CODES = (429, 503)
+RATE_LIMIT_WAITS = (5.0, 15.0, 45.0, 90.0)
+MAX_WAIT = 120.0
 # ASCII characters that are safe unescaped in the /wiki/ path; everything else
 # ASCII (?, #, &, %, ", ...) is percent-encoded. Non-ASCII (Devanagari) is kept
 # as is, so Hindi links stay readable (browsers accept these IRIs).
@@ -78,9 +84,19 @@ def urllib_get(url: str, params: dict, headers: dict, timeout: float = 30) -> di
         return json.loads(resp.read().decode("utf-8"))
 
 
+def retry_after(err: urllib.error.HTTPError) -> float | None:
+    """Seconds from a Retry-After header, or None (missing, or the rarer HTTP-date form)."""
+    value = err.headers.get("Retry-After") if err.headers else None
+    try:
+        return min(float(value), MAX_WAIT) if value is not None else None
+    except ValueError:
+        return None
+
+
 class WikiClient:
     """Polite MediaWiki API client: one request at a time, a pause between
-    requests, and one retry on errors. ``http_get`` is injectable for tests."""
+    requests, backing off when rate limited, and one retry on other errors.
+    ``http_get`` is injectable for tests."""
 
     def __init__(self, lang: str, user_agent: str = DEFAULT_USER_AGENT,
                  http_get: Callable[[str, dict, dict], dict] = urllib_get,
@@ -95,7 +111,8 @@ class WikiClient:
 
     def request(self, params: dict) -> dict:
         params = {"format": "json", "formatversion": "2", **params}
-        for attempt in (1, 2):
+        errors = waits = 0
+        while True:
             if self._requests:
                 self.sleep(self.pause)
             self._requests += 1
@@ -104,12 +121,25 @@ class WikiClient:
                 if "error" in data:
                     raise WikiError(f"{data['error'].get('code')}: {data['error'].get('info')}")
                 return data
+            except urllib.error.HTTPError as e:  # before URLError: HTTPError is a subclass
+                if e.code not in RATE_LIMIT_CODES:
+                    err = e
+                elif waits < len(RATE_LIMIT_WAITS):
+                    wait = retry_after(e) or RATE_LIMIT_WAITS[waits]
+                    waits += 1
+                    log.warning("HTTP %d (rate limited), waiting %.0fs before retry %d/%d",
+                                e.code, wait, waits, len(RATE_LIMIT_WAITS))
+                    self.sleep(wait)
+                    continue
+                else:
+                    raise WikiError(f"still rate limited after {waits} waits: {e}") from e
             except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, WikiError) as e:
-                if attempt == 2:
-                    raise WikiError(f"request failed twice: {e}") from e
-                log.warning("request failed (%s), retrying once in %.0fs", e, RETRY_WAIT)
-                self.sleep(RETRY_WAIT)
-        raise AssertionError("unreachable")
+                err = e
+            errors += 1
+            if errors == 2:
+                raise WikiError(f"request failed twice: {err}") from err
+            log.warning("request failed (%s), retrying once in %.0fs", err, RETRY_WAIT)
+            self.sleep(RETRY_WAIT)
 
     def extracts(self, titles: list[str]) -> list[dict]:
         """Lead sections for up to BATCH titles. Follows redirects; skips missing pages."""
@@ -186,6 +216,8 @@ def fetch(client: WikiClient, titles: list[str], categories: list[str] | None = 
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Exit status: 0 if every batch was fetched, 1 if some titles failed (the
+    file is still written), so a notebook can avoid caching an incomplete corpus."""
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--titles", help="file with one article title per line")
@@ -206,8 +238,9 @@ def main(argv: list[str] | None = None) -> int:
     if failed:
         log.warning("%d titles not fetched because of errors (re-run to retry): %s",
                     len(failed), ", ".join(failed[:10]) + (" ..." if len(failed) > 10 else ""))
-    return n
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -8,8 +8,14 @@ but building the dense index and answering queries is several times slower.
 **Before you start**, Drive must already contain the trained Hindi verifier at
 `MyDrive/verifact/models/nli_hindi/best` (written by `scripts/run_colab_hindi.sh`).
 
-Time: about 10 minutes on the first run (pip, Wikipedia fetch, model downloads,
-index). Later sessions reuse the Wikipedia files saved to Drive.
+**Recommended, once:** upload the complete Wikipedia files from the laptop
+(`data/raw/wiki_en.jsonl`: 390 articles, `data/raw/wiki_hi.jsonl`: 70 articles)
+to `MyDrive/verifact/corpus/`. Cell 4 then uses them and never contacts
+Wikipedia, so rate limiting (HTTP 429, which lost 70 articles in the first
+Colab run) cannot happen during the demo. The corpus is then 493 documents →
+1781 passages.
+
+Time: about 10 minutes on the first run (pip, model downloads, index).
 
 ---
 
@@ -64,20 +70,40 @@ subprocess.run(['git', '-C', DEST, 'remote', 'set-url', 'origin', f'https://{REP
 
 ### 4. Fetch Wikipedia lead sections (cached on Drive)
 
-About 20 + 4 API requests. Skipped if the files are already on Drive. Wikipedia's
-policy asks for contact details in the User-Agent: replace `<your email>`.
+Uses the files on Drive if they are there. Otherwise it fetches (about 20 + 4 API
+requests; on HTTP 429 the fetcher waits and retries) and saves to Drive **only
+if every title was fetched**, so an incomplete corpus is never cached for later
+sessions. Wikipedia's policy asks for contact details in the User-Agent: replace
+`<your email>`.
 
 ```python
+import shutil
+
 UA = 'VeriFact-student-project/0.1 (BIT Mesra minor project; <your email>)'
 
+WIKI_FILES = []
 for lang in ('en', 'hi'):
-    out = f'{WIKI_DIR}/wiki_{lang}.jsonl'
-    if os.path.exists(out):
-        print('cached:', out)
+    cached = f'{WIKI_DIR}/wiki_{lang}.jsonl'
+    if os.path.exists(cached):
+        print('cached:', cached)
+        WIKI_FILES.append(cached)
+        continue
+    tmp = f'/content/wiki_{lang}.jsonl'
+    r = subprocess.run(['python', 'scripts/fetch_wikipedia.py', '--titles', f'data/wiki_topics_{lang}.txt',
+                        '--lang', lang, '--out', tmp, '--user-agent', UA], capture_output=True, text=True)
+    print(r.stderr[-1500:])   # the fetcher logs progress to stderr
+    if r.returncode == 0:
+        shutil.copy(tmp, cached)
+        print('complete, saved to Drive:', cached)
     else:
-        !python scripts/fetch_wikipedia.py --titles data/wiki_topics_{lang}.txt --lang {lang} --out "{out}" --user-agent "{UA}"
-!wc -l "$WIKI_DIR"/wiki_*.jsonl
+        print(f'WARNING: some {lang} titles failed (listed above). Using the incomplete file for this '
+              'session only; rerun this cell later to try again.')
+    WIKI_FILES.append(tmp)
+WIKI_ARGS = ' '.join(f'"{f}"' for f in WIKI_FILES)   # quoted paths for the shell commands below
+!wc -l {WIKI_ARGS}
 ```
+
+Expected: 390 English and 70 Hindi lines.
 
 ### 5. Build the corpus
 
@@ -85,9 +111,11 @@ Wikipedia articles plus the sample demo documents, chunked into passages.
 
 ```python
 !python scripts/prepare_data.py corpus \
-    --docs "$WIKI_DIR/wiki_en.jsonl" "$WIKI_DIR/wiki_hi.jsonl" data/sample/corpus_docs.jsonl \
+    --docs {WIKI_ARGS} data/sample/corpus_docs.jsonl \
     --out data/corpus/passages.jsonl
 ```
+
+Expected: `corpus: 493 documents -> 1781 passages`.
 
 ### 6. Point the pipeline at the Hindi verifier
 
@@ -125,7 +153,26 @@ If this prints a verdict, the app will work too.
 !python scripts/verify.py "सरकार 1 दिसंबर से सभी 500 के नोट बंद कर रही है" --config configs/pipeline_colab.yaml | head -20
 ```
 
-### 9. Start Streamlit in the background
+### 9. Rehearse: run all 15 sample forwards
+
+Runs the 5 English, 5 Hindi and 5 Hinglish messages from
+`data/sample/demo_forwards.jsonl` through the same pipeline and corpus the app
+uses, and saves the table to Drive. Use it to choose which examples to show
+live: pick the ones where the verdict matches `expected`.
+
+```python
+!python scripts/run_demo.py --config configs/pipeline_colab.yaml \
+    --set retrieval.corpus=data/corpus/passages.jsonl retrieval.index_dir=artifacts/index \
+    --out "{DRIVE}/results/demo_rehearsal.json"
+```
+
+The `evidence` score only counts the exact sample document the message was
+written against. With the full corpus a Wikipedia article on the same topic
+(for example the PM-KISAN or Aadhaar article) sometimes ranks first. That is
+still correct evidence but counts as a miss, so read the evidence column
+rather than relying on the score alone.
+
+### 10. Start Streamlit in the background
 
 The two flags are needed because Colab shows the app through a proxy on a
 different origin. Otherwise Streamlit's CORS and XSRF checks block the
@@ -147,7 +194,7 @@ else:
     print(open('streamlit.log').read()[-3000:])
 ```
 
-### 10. Show the app in the notebook
+### 11. Show the app in the notebook
 
 ```python
 from google.colab import output
@@ -158,15 +205,46 @@ The first "Check" takes up to a minute while the models load; later checks are
 fast. For a full browser tab instead of the iframe:
 `output.serve_kernel_port_as_window(8501)`.
 
+The **"Try an example forward"** dropdown fills the text box with one of the 15
+sample messages, so you don't have to type Hindi during the demo. You can still
+edit the text or paste your own.
+
+---
+
+### Demo-day checklist
+
+**The day before**
+- Run cells 1–11 once in a fresh session. This checks the token, the Drive
+  model, the GPU quota and the downloads.
+- Look at the rehearsal table (cell 9) and note 2–3 messages per language that
+  come out right. Prepare one message of your own that is not in the sample
+  files, to show it isn't limited to prepared examples.
+- Keep `demo_rehearsal.json` and a few screenshots of the app as a backup in
+  case Colab or the network fails during the demo.
+
+**15 minutes before**
+- Fresh session: run cells 1–8 and 10–11 (skip the rehearsal to save time).
+- Press **Check** once on any example so the models are loaded before the
+  audience is watching.
+
+**Things to be ready to explain**
+- "UNVERIFIED" is an honest answer: nothing in the corpus is close enough to
+  the claim. It is not a crash. The knowledge base is 493 documents, not the whole web.
+- The verdict comes from retrieved evidence plus the NLI model, not from the
+  writing style. Expand a claim to show the key evidence and its source link.
+- Demo documents have no link and are labelled "Demo evidence (written for this
+  prototype)".
+
 ---
 
 ### Troubleshooting
 
 | Symptom | Fix |
 |---|---|
-| Blank iframe or "connecting" forever | Rerun cell 9 and check that both `--server.enable*` flags are there, then rerun cell 10 |
+| Blank iframe or "connecting" forever | Rerun cell 10 and check that both `--server.enable*` flags are there, then rerun cell 11 |
 | Error in the app | `!tail -50 streamlit.log` |
 | `no trained model at ...` in cell 6 | Run `scripts/run_colab_hindi.sh` first, or set `MODEL_DIR` to `.../models/nli_fever/best` |
-| Wikipedia fetch skipped titles | Normal for a few titles; the log lists them. Delete the Drive file to refetch |
-| Changed code on GitHub | Rerun cell 2 (it pulls), then cells 9–10 |
+| Cell 4 warns that titles failed | Wikipedia rate limiting. Rerun cell 4 a few minutes later, or upload the laptop's `data/raw/wiki_*.jsonl` to `MyDrive/verifact/corpus/` |
+| Corpus count is not 493 → 1781 | A Drive file is incomplete (e.g. from an older run). Delete it, or replace it with the laptop copy, then rerun cells 4, 5 and 7 |
+| Changed code on GitHub | Rerun cell 2 (it pulls), then cells 10–11 |
 | Stop the app | `!pkill -f "[s]treamlit run"` |

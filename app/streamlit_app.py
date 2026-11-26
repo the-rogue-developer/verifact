@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from verifact.config import load_config  # noqa: E402
+from verifact.io import read_jsonl  # noqa: E402
 from verifact.pipeline.build import build_pipeline  # noqa: E402
 from verifact.retrieval.corpus import source_url  # noqa: E402
 
@@ -27,6 +28,23 @@ VERDICT_STYLE = {
 }
 CLAIM_BADGE = {"REFUTES": "🔴 Refuted", "SUPPORTS": "🟢 Supported", "NOT ENOUGH INFO": "⚪ Not enough info"}
 LANG_NAMES = {"en": "English", "hi": "Hindi", "hi-Latn": "Hinglish"}
+EXAMPLES_FILE = ROOT / "data" / "sample" / "demo_forwards.jsonl"
+OWN_TEXT = "(type or paste your own)"
+
+
+def load_examples(path: Path = EXAMPLES_FILE) -> dict[str, str]:
+    """Dropdown label -> message, from the sample forwards. Saves typing Hindi
+    live during a demo. The expected verdict in the file is deliberately not shown."""
+    try:
+        rows = read_jsonl(path)
+    except FileNotFoundError:
+        return {}
+    examples = {}
+    for r in rows:
+        msg = " ".join(r["message"].split())
+        short = msg if len(msg) <= 70 else msg[:69] + "…"
+        examples[f"{LANG_NAMES.get(r.get('lang'), r.get('lang', '?'))}: {short}"] = r["message"]
+    return examples
 
 
 @st.cache_resource(show_spinner="Loading models...")
@@ -44,7 +62,12 @@ default_config = os.environ.get("VERIFACT_CONFIG") or str(ROOT / "configs" / "pi
 config_path = st.sidebar.text_input("Pipeline config", default_config)
 show_all = st.sidebar.checkbox("Show all retrieved evidence", value=False)
 
-message = st.text_area("Paste a message, forward or headline", height=150,
+examples = load_examples()
+choice = st.selectbox("Try an example forward", [OWN_TEXT, *examples]) if examples else OWN_TEXT
+# No key on the text area: when the chosen example changes, its default value
+# changes, so Streamlit treats it as a new widget and shows the new text.
+# Typed edits survive reruns (e.g. pressing Check) because the default stays the same.
+message = st.text_area("Paste a message, forward or headline", value=examples.get(choice, ""), height=150,
                        placeholder="e.g. सरकार 1 दिसंबर से सभी 500 के नोट बंद कर रही है")
 
 if st.button("Check", type="primary") and message.strip():

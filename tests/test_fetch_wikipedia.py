@@ -1,7 +1,9 @@
 """scripts/fetch_wikipedia.py with mocked HTTP (offline): request parameters,
-User-Agent, batching, redirects, missing pages, continuation, retry, categories."""
+User-Agent, batching, redirects, missing pages, continuation, retry,
+rate-limit back-off, exit status, categories."""
 
 import importlib.util
+import email.message
 import io
 import json
 import urllib.error
@@ -33,9 +35,11 @@ class FakeWiki:
     }
     REDIRECTS = {"Ranchi city": "Ranchi"}
 
-    def __init__(self, fail_first: int = 0):
+    def __init__(self, fail_first: int = 0, rate_limit_first: int = 0, retry_after: str | None = None):
         self.calls = []          # (params, headers)
         self.fail_first = fail_first
+        self.rate_limit_first = rate_limit_first
+        self.retry_after = retry_after
 
     def urlopen(self, req, timeout=None):
         params = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(req.full_url).query))
@@ -43,6 +47,12 @@ class FakeWiki:
         if self.fail_first:
             self.fail_first -= 1
             raise urllib.error.URLError("connection reset")
+        if self.rate_limit_first:
+            self.rate_limit_first -= 1
+            hdrs = email.message.Message()
+            if self.retry_after is not None:
+                hdrs["Retry-After"] = self.retry_after
+            raise urllib.error.HTTPError(req.full_url, 429, "Too Many Requests", hdrs, None)
         if params.get("list") == "categorymembers":
             body = {"query": {"categorymembers": [{"ns": 0, "title": "Taj Mahal"}, {"ns": 0, "title": "Ranchi"}]}}
         else:
@@ -71,7 +81,7 @@ def test_fetch_titles_end_to_end(fw, fake, tmp_path):
     titles = tmp_path / "titles.txt"
     titles.write_text("# comment\nRanchi city\n\nRanchi\nTaj Mahal\nNo Such Article\nAT&T\n", encoding="utf-8")
     out = tmp_path / "wiki.jsonl"
-    assert fw.main(["--titles", str(titles), "--lang", "en", "--out", str(out)]) == 3
+    assert fw.main(["--titles", str(titles), "--lang", "en", "--out", str(out)]) == 0  # exit status: complete
 
     params, headers = fake.calls[0]
     assert params["action"] == "query" and params["prop"] == "extracts"
@@ -144,3 +154,38 @@ def test_topic_files_are_clean():
         titles = [t for t in lines if t and not t.startswith("#")]
         assert len(titles) >= minimum and len(titles) == len(set(titles)), name
         assert all("|" not in t and "_" not in t for t in titles), name  # "|" would break batching
+
+
+def test_rate_limit_waits_for_retry_after_header(fw, monkeypatch):
+    sleeps = []
+    wiki = FakeWiki(rate_limit_first=2, retry_after="7")
+    monkeypatch.setattr(fw.urllib.request, "urlopen", wiki.urlopen)
+    docs, failed = fw.fetch(fw.WikiClient("en", sleep=sleeps.append), ["Ranchi"])
+    assert [d["title"] for d in docs] == ["Ranchi"] and failed == []
+    # Retry-After is honoured (7 s, not the 2 s generic retry), plus the usual
+    # pause before every request except the first
+    assert sleeps == [7.0, 0.5, 7.0, 0.5]
+
+
+def test_rate_limit_backoff_schedule_then_give_up(fw, monkeypatch):
+    sleeps = []
+    wiki = FakeWiki(rate_limit_first=2)  # no Retry-After header: use the growing schedule
+    monkeypatch.setattr(fw.urllib.request, "urlopen", wiki.urlopen)
+    docs, _ = fw.fetch(fw.WikiClient("en", sleep=sleeps.append), ["Ranchi"])
+    assert len(docs) == 1 and [s for s in sleeps if s != 0.5] == [5.0, 15.0]
+
+    sleeps.clear()
+    always = FakeWiki(rate_limit_first=100)
+    monkeypatch.setattr(fw.urllib.request, "urlopen", always.urlopen)
+    docs, failed = fw.fetch(fw.WikiClient("en", sleep=sleeps.append), ["Ranchi"])
+    assert docs == [] and failed == ["Ranchi"]
+    assert [s for s in sleeps if s != 0.5] == list(fw.RATE_LIMIT_WAITS)  # gives up after the schedule
+    assert len(always.calls) == len(fw.RATE_LIMIT_WAITS) + 1
+
+
+def test_exit_status_is_1_when_titles_fail(fw, monkeypatch, tmp_path):
+    monkeypatch.setattr(fw.urllib.request, "urlopen", FakeWiki(fail_first=2).urlopen)
+    monkeypatch.setattr(fw.time, "sleep", lambda s: None)
+    titles = tmp_path / "t.txt"
+    titles.write_text("Ranchi\n", encoding="utf-8")
+    assert fw.main(["--titles", str(titles), "--out", str(tmp_path / "w.jsonl")]) == 1
